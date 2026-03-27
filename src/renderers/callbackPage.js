@@ -1,8 +1,8 @@
 const { renderLanguageSwitcher } = require('./common');
 
-function renderCallbackSuccessPage(lang, texts, { verifierResult }) {
+function renderCallbackSuccessPage(lang, texts, { verifierResult, verifierAttempted }) {
     const homeUrl = `/?lang=${encodeURIComponent(lang)}`;
-    const success = verifierResult && verifierResult.returnValue === true;
+    const success = !verifierAttempted || (verifierResult && verifierResult.returnValue === true);
     const title = success ? texts.callback.heading : texts.callback.verifierRejected;
     const subtitle = success ? texts.callback.successSubtitle : texts.callback.verifierFailureSubtitle;
 

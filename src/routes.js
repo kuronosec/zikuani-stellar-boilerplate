@@ -21,6 +21,18 @@ const { createState, getLang, getLanguageFromState } = require('./utils/language
 const { parseJwt } = require('./utils/token');
 const { verifyProofOnChain } = require('./services/sorobanVerifier');
 
+function maybeParseJson(value) {
+    if (typeof value !== 'string') {
+        return value;
+    }
+
+    try {
+        return JSON.parse(value);
+    } catch (error) {
+        return value;
+    }
+}
+
 function handleHome(req, res) {
     const lang = getLang(req);
     const texts = translations[lang];
@@ -148,12 +160,13 @@ async function handleCallback(req, res) {
             { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
         );
 
-        const { access_token, expires_in, proof } = response.data;
-  
+        const tokenResponse = maybeParseJson(response.data) || {};
+        const { access_token, expires_in, proof } = tokenResponse;
         let verifierResult = null;
-        const proofPayload = JSON.parse(proof);
+        const verifierAttempted = scope === 'zk-firma-digital';
+        const proofPayload = maybeParseJson(proof);
 
-        if (scope === 'zk-firma-digital') {
+        if (verifierAttempted) {
             try {
                 verifierResult = await verifyProofOnChain(proofPayload, {
                     rpcUrl: SOROBAN_RPC_URL,
@@ -167,20 +180,10 @@ async function handleCallback(req, res) {
             }
         }
 
-        const decodedToken = parseJwt(access_token);
-        const tokenReadable = decodedToken ? JSON.stringify(decodedToken, null, 2) : access_token ? String(access_token) : '';
-        const proofReadable = proofPayload ? JSON.stringify(proofPayload, null, 2) : texts.callback.noProof;
-        const tokenPayload = escapeHtml(tokenReadable);
-        const escapedProofPayload = escapeHtml(proofReadable);
-
         res.send(
             renderCallbackSuccessPage(lang, texts, {
-                expiresIn: expires_in,
-                tokenPayload,
-                tokenRaw: tokenReadable,
-                proofPayload: escapedProofPayload,
-                proofRaw: proofReadable,
-                verifierResult
+                verifierResult,
+                verifierAttempted
             })
         );
     } catch (error) {
