@@ -1,0 +1,7 @@
+services:
+  web:
+    image: zikuani-boilerplate
+    restart: always
+    build: ../
+    ports:
+      - 3000:3000

@@ -1,0 +1,19 @@
+{
+  "name": "zikuani-boilerplate",
+  "version": "0.0.1",
+  "description": "Template to be able to use the Zikuani services as a third party provider",
+  "main": "src/client.js\t",
+  "repository": "https://github.com/sakundi/zikuani-boilerplate",
+  "author": "Andres Gomez <andres.gomez@sakundi.io>",
+  "license": "Apache-2.0",
+  "private": false,
+  "scripts": {
+    "start": "node src/client.js",
+    "build": "yarn build"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^14.6.1",
+    "axios": "^1.9.0",
+    "express": "^5.1.0"
+  }
+}
