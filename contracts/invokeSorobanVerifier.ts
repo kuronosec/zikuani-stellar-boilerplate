@@ -216,6 +216,8 @@ async function simulateOrSend() {
     return
   }
 
+  console.log('Submitted transaction hash:', sendResponse.hash)
+
   for (let attempt = 0; attempt < 20; attempt++) {
     const txResult = await server.getTransaction(sendResponse.hash)
 
@@ -224,6 +226,8 @@ async function simulateOrSend() {
         ? scValToNative(txResult.returnValue)
         : undefined
 
+      console.log('Final on-chain return value:', finalResult)
+      console.log('Transaction hash:', txResult.txHash || sendResponse.hash)
       console.log(`Proof ${finalResult ? 'verified' : 'rejected'}.`)
       return
     }
