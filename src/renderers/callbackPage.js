@@ -5,6 +5,16 @@ function renderCallbackSuccessPage(lang, texts, { verifierResult, verifierAttemp
     const success = !verifierAttempted || (verifierResult && verifierResult.returnValue === true);
     const title = success ? texts.callback.heading : texts.callback.verifierRejected;
     const subtitle = success ? texts.callback.successSubtitle : texts.callback.verifierFailureSubtitle;
+    const verifierStatus = !verifierAttempted
+        ? texts.callback.verifierSkipped
+        : verifierResult && verifierResult.returnValue === true
+            ? texts.callback.verifierVerified
+            : verifierResult && verifierResult.returnValue === false
+                ? texts.callback.verifierRejected
+                : texts.callback.verifierUnknown;
+    const txHash = verifierResult && verifierResult.txHash ? verifierResult.txHash : texts.callback.verifierNoTx;
+    const explorerBaseUrl = 'https://stellarchain.io/tx/';
+    const txLink = verifierResult && verifierResult.txHash ? `${explorerBaseUrl}${encodeURIComponent(verifierResult.txHash)}` : null;
 
     return `
         <!DOCTYPE html>
@@ -68,6 +78,39 @@ function renderCallbackSuccessPage(lang, texts, { verifierResult, verifierAttemp
                     line-height: 1.65;
                     margin-bottom: 2rem;
                 }
+                .verifier-panel {
+                    margin-top: 1.75rem;
+                    padding: 1rem 1.1rem;
+                    border-radius: 18px;
+                    background: rgba(10, 19, 52, 0.28);
+                    border: 1px solid rgba(201, 219, 255, 0.22);
+                    text-align: left;
+                }
+                .verifier-row + .verifier-row {
+                    margin-top: 0.9rem;
+                }
+                .verifier-label {
+                    display: block;
+                    margin-bottom: 0.3rem;
+                    font-size: 0.8rem;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                    color: rgba(222, 233, 255, 0.68);
+                }
+                .verifier-value {
+                    color: #ffffff;
+                    font-weight: 600;
+                    word-break: break-word;
+                }
+                .verifier-link {
+                    color: #d7e5ff;
+                    text-decoration: none;
+                    border-bottom: 1px solid rgba(215, 229, 255, 0.4);
+                }
+                .verifier-link:hover {
+                    color: #ffffff;
+                    border-bottom-color: rgba(255, 255, 255, 0.75);
+                }
                 .btn-outline-light {
                     border-radius: 16px;
                     font-weight: 600;
@@ -109,6 +152,16 @@ function renderCallbackSuccessPage(lang, texts, { verifierResult, verifierAttemp
                     <div class="success-icon">✓</div>
                     <h1 class="summary-title">${title}</h1>
                     <p class="summary-subtitle">${subtitle}</p>
+                    <div class="verifier-panel">
+                        <div class="verifier-row">
+                            <span class="verifier-label">${texts.callback.verifierLabel}</span>
+                            <div class="verifier-value">${verifierStatus}</div>
+                        </div>
+                        <div class="verifier-row">
+                            <span class="verifier-label">${texts.callback.verifierTxLabel}</span>
+                            <div class="verifier-value">${txLink ? `<a class="verifier-link" href="${txLink}" target="_blank" rel="noreferrer">${txHash}</a>` : txHash}</div>
+                        </div>
+                    </div>
                     <a href="${homeUrl}" class="btn btn-outline-light w-100 mt-4">${texts.callback.backButton}</a>
                 </div>
             </div>
