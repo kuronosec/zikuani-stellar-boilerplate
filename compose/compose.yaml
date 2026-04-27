@@ -3,5 +3,7 @@ services:
     image: zikuani-boilerplate
     restart: always
     build: ../
+    env_file:
+      - .env.docker
     ports:
       - 3000:3000
