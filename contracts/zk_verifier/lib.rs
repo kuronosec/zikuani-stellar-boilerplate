@@ -6,13 +6,12 @@ mod vk;
 mod xray;
 
 type G1 = BytesN<64>;
-type G2 = BytesN<128>;
 type Scalar = BytesN<32>;
 
 #[contracttype]
 pub struct Pair {
-    pub g1: G1,
-    pub g2: G2,
+    pub g1: BytesN<64>,
+    pub g2: BytesN<128>,
 }
 
 #[contract]
@@ -27,7 +26,7 @@ impl Verifier {
     /// - b: 128 bytes (x1 || x2 || y1 || y2)
     /// - c: 64 bytes (x || y)
     /// - pub_signals: 5 scalars (each 32 bytes)
-    pub fn verify_proof(env: Env, a: G1, b: G2, c: G1, pub_signals: Vec<Scalar>) -> bool {
+    pub fn verify_proof(env: Env, a: BytesN<64>, b: BytesN<128>, c: BytesN<64>, pub_signals: Vec<BytesN<32>>) -> bool {
         if pub_signals.len() != 5 {
             return false;
         }

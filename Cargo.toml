@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "contracts/zk_verifier",
+  "contracts/zk_vote",
 ]
 
 [workspace.dependencies]
