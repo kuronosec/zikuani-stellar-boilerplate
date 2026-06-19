@@ -8,12 +8,18 @@
   "license": "Apache-2.0",
   "private": false,
   "scripts": {
+    "prestart": "yarn build:wallet",
     "start": "node src/client.js",
-    "build": "yarn build"
+    "build": "yarn build:wallet",
+    "build:wallet": "esbuild src/wallet/wallet-connect.js --bundle --format=esm --minify --outfile=public/js/wallet-connect.bundle.js"
   },
   "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "^2.3.0",
     "@stellar/stellar-sdk": "^14.6.1",
     "axios": "^1.9.0",
     "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
   }
 }
