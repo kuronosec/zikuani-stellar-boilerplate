@@ -5,6 +5,7 @@ members = [
   "contracts/zk_verifier",
   "contracts/zk_vote",
   "contracts/ofac_verifier",
+  "contracts/identity_gate",
 ]
 
 [workspace.dependencies]

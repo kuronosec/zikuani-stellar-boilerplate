@@ -133,13 +133,16 @@ impl ZkVote {
     ///
     /// ### Public signals layout (5 × 32-byte big-endian scalars)
     ///
+    /// Confirmed against `FirmaDigitalCRVerifier`'s symbol table (outputs
+    /// first, then public inputs, in declaration order):
+    ///
     /// | idx | meaning                                                       |
     /// |-----|---------------------------------------------------------------|
-    /// | 0   | `nullifier_seed` — must equal `vote_params.vote_scope`       |
+    /// | 0   | `pubkeyHash`     — Poseidon hash of the signing RSA pubkey    |
     /// | 1   | `nullifier`      — unique per voter; prevents double-voting   |
-    /// | 2   | `signal`         — voter identity field element               |
-    /// | 3   | `reveal_flag`    — circuit reveal toggle (0 or 1)             |
-    /// | 4   | reserved         — additional circuit output                  |
+    /// | 2   | `ageAbove18`     — reveal flag (0 or 1); not checked here     |
+    /// | 3   | `nullifierSeed`  — must equal `vote_params.vote_scope`        |
+    /// | 4   | `signalHash`     — binding commitment (see identity_gate)     |
     ///
     /// * `voter`          – account casting the vote (must authorise the tx)
     /// * `proposal_index` – 0-based index into the proposals list
@@ -176,10 +179,11 @@ impl ZkVote {
             .get(&DataKey::VoteParams)
             .ok_or(Error::NotInitialized)?;
 
-        // pub_signals[0] must encode vote_scope so the proof is bound to this
-        // campaign and cannot be replayed against a different vote contract.
+        // pub_signals[3] (nullifierSeed) must encode vote_scope so the proof
+        // is bound to this campaign and cannot be replayed against a
+        // different vote contract.
         let expected_seed = u64_to_scalar(&env, vote_params.vote_scope);
-        if pub_signals.get_unchecked(0) != expected_seed {
+        if pub_signals.get_unchecked(3) != expected_seed {
             return Err(Error::WrongNullifierSeed);
         }
 
