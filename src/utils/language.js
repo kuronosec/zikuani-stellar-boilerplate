@@ -24,9 +24,10 @@ function getLang(req) {
     return 'es';
 }
 
-function createState(lang) {
+function createState(lang, wallet) {
     const randomPart = Math.random().toString(36).slice(2, 10);
-    return `${lang}:${randomPart}`;
+    const state = `${lang}:${randomPart}`;
+    return wallet ? `${state}:${encodeURIComponent(wallet)}` : state;
 }
 
 function getLanguageFromState(state) {
@@ -42,8 +43,21 @@ function getLanguageFromState(state) {
     return null;
 }
 
+// The OAuth provider echoes `state` back unchanged to `/callback`, so this is
+// how the wallet address the user connected at `/login` (also sent as the
+// `user_id` for the firma-digital proof request) travels back to us.
+function getWalletFromState(state) {
+    if (!state || typeof state !== 'string') {
+        return null;
+    }
+
+    const [, , encodedWallet] = state.split(':');
+    return encodedWallet ? decodeURIComponent(encodedWallet) : null;
+}
+
 module.exports = {
     getLang,
     createState,
-    getLanguageFromState
+    getLanguageFromState,
+    getWalletFromState
 };

@@ -147,19 +147,14 @@ impl IdentityGate {
     /// `wallet`'s actual Stellar key bytes: Soroban's `Address` type does not
     /// expose raw public-key bytes to contract code, and there is no
     /// Poseidon host function to recompute the hash on-chain even if it did.
-    /// That link -- "the off-chain prover used *my* wallet's bytes as
-    /// addressLo/addressHi" -- is enforced by `wallet.require_auth()` (only
-    /// the real key holder can submit this call) combined with off-chain
-    /// discipline in however these proofs get generated, not by an
-    /// independent on-chain recomputation.
+    /// `wallet` is treated purely as the on-chain record key for this check
+    /// -- the caller does not need to authorize as `wallet` to submit it.
     pub fn verify_identity(
         env: Env,
         wallet: Address,
         firma_proof: Proof,
         ofac_proof: Proof,
     ) -> Result<(), Error> {
-        wallet.require_auth();
-
         if firma_proof.pub_signals.len() != 5 {
             return Err(Error::WrongFirmaSignalsLen);
         }

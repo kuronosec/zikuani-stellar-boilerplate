@@ -8,18 +8,20 @@ const {
     REDIRECT_URI,
     SOROBAN_RPC_URL,
     SOROBAN_NETWORK_PASSPHRASE,
-    SOROBAN_CONTRACT_ID,
+    IDENTITY_GATE_CONTRACT_ID,
     SOROBAN_SECRET_KEY,
-    SOROBAN_ALLOW_HTTP
+    SOROBAN_ALLOW_HTTP,
+    OFAC_PROVER_DIR
 } = require('./config');
 const { renderHomePage } = require('./renderers/homePage');
 const { renderPassportPage } = require('./renderers/passportPage');
 const { renderCallbackErrorPage, renderCallbackSuccessPage } = require('./renderers/callbackPage');
 const { escapeHtml } = require('./renderers/common');
 const { translations } = require('./translations');
-const { createState, getLang, getLanguageFromState } = require('./utils/language');
+const { createState, getLang, getLanguageFromState, getWalletFromState } = require('./utils/language');
 const { parseJwt } = require('./utils/token');
-const { verifyProofOnChain } = require('./services/sorobanVerifier');
+const { verifyIdentityOnChain } = require('./services/sorobanVerifier');
+const { generateOfacProof } = require('./services/ofacProver');
 
 function maybeParseJson(value) {
     if (typeof value !== 'string') {
@@ -118,7 +120,7 @@ function handleLogin(req, res) {
     const lang = getLang(req);
     const texts = translations[lang];
     const { method, user, country } = req.query;
-    const state = createState(lang);
+    const state = createState(lang, user);
 
     if (method === 'firma-digital') {
         const authUrl = buildFirmaDigitalUrl({ user, state });
@@ -165,13 +167,20 @@ async function handleCallback(req, res) {
         let verifierResult = null;
         const verifierAttempted = scope === 'zk-firma-digital';
         const proofPayload = maybeParseJson(proof);
+        const wallet = getWalletFromState(req.query.state);
 
         if (verifierAttempted) {
             try {
-                verifierResult = await verifyProofOnChain(proofPayload, {
+                if (!wallet) {
+                    throw new Error('No wallet address found in state');
+                }
+
+                const ofacProofPayload = await generateOfacProof(wallet, OFAC_PROVER_DIR);
+
+                verifierResult = await verifyIdentityOnChain(wallet, proofPayload, ofacProofPayload, {
                     rpcUrl: SOROBAN_RPC_URL,
                     networkPassphrase: SOROBAN_NETWORK_PASSPHRASE,
-                    contractId: SOROBAN_CONTRACT_ID,
+                    contractId: IDENTITY_GATE_CONTRACT_ID,
                     secretKey: SOROBAN_SECRET_KEY,
                     allowHttp: SOROBAN_ALLOW_HTTP
                 });

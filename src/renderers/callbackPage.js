@@ -2,14 +2,14 @@ const { renderLanguageSwitcher } = require('./common');
 
 function renderCallbackSuccessPage(lang, texts, { verifierResult, verifierAttempted }) {
     const homeUrl = `/?lang=${encodeURIComponent(lang)}`;
-    const success = !verifierAttempted || (verifierResult && verifierResult.returnValue === true);
+    const success = !verifierAttempted || (verifierResult && verifierResult.verified === true);
     const title = success ? texts.callback.heading : texts.callback.verifierRejected;
     const subtitle = success ? texts.callback.successSubtitle : texts.callback.verifierFailureSubtitle;
     const verifierStatus = !verifierAttempted
         ? texts.callback.verifierSkipped
-        : verifierResult && verifierResult.returnValue === true
+        : verifierResult && verifierResult.verified === true
             ? texts.callback.verifierVerified
-            : verifierResult && verifierResult.returnValue === false
+            : verifierResult && verifierResult.verified === false
                 ? texts.callback.verifierRejected
                 : texts.callback.verifierUnknown;
     const txHash = verifierResult && verifierResult.txHash ? verifierResult.txHash : texts.callback.verifierNoTx;
