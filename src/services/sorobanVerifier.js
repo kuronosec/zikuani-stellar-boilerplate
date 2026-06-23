@@ -150,8 +150,8 @@ async function verifyProofOnChain(proofPayload, config) {
 
     const { proof, pubSignals } = parseProofPayload(proofPayload);
 
-    if (pubSignals.length < 5) {
-        throw new Error('Proof payload does not contain 5 public signals');
+    if (pubSignals.length === 0) {
+        throw new Error('Proof payload does not contain any public signals');
     }
 
     const server = new rpc.Server(rpcUrl, { allowHttp: shouldAllowHttp(rpcUrl, allowHttp) });
@@ -173,7 +173,7 @@ async function verifyProofOnChain(proofPayload, config) {
                     nativeToScVal(b, { type: 'bytes' }),
                     nativeToScVal(c, { type: 'bytes' }),
                     nativeToScVal(
-                        pubSignals.slice(0, 5).map((value) => nativeToScVal(be32(value), { type: 'bytes' })),
+                        pubSignals.map((value) => nativeToScVal(be32(value), { type: 'bytes' })),
                         { type: 'vec' }
                     )
                 ]
