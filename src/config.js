@@ -1,5 +1,3 @@
-const path = require('path');
-
 const CLIENT_ID = process.env.REACT_APP_CLIENT_ID || 'demo@sakundi.io';
 const CLIENT_SECRET = process.env.REACT_APP_CLIENT_SECRET || 'password';
 const REDIRECT_URI = process.env.REACT_APP_REDIRECT_URI || 'http://localhost:3000/callback';
@@ -10,9 +8,6 @@ const SOROBAN_NETWORK_PASSPHRASE = process.env.SOROBAN_NETWORK_PASSPHRASE || 'Te
 const SOROBAN_SECRET_KEY = process.env.SOROBAN_SECRET_KEY || '';
 const SOROBAN_ALLOW_HTTP = process.env.SOROBAN_ALLOW_HTTP === '1';
 const IDENTITY_GATE_CONTRACT_ID = process.env.IDENTITY_GATE_CONTRACT_ID || '';
-// Vendored prover (prove-ofac.js + circuit build artifacts) under prover/.
-const OFAC_PROVER_DIR = process.env.OFAC_PROVER_DIR
-    || path.resolve(__dirname, '..', 'prover');
 
 const countries = [
     { value: 'CRI', emoji: '🇨🇷', labels: { es: 'Costa Rica (CRI)', en: 'Costa Rica (CRI)' } },
@@ -47,6 +42,5 @@ module.exports = {
     SOROBAN_SECRET_KEY,
     SOROBAN_ALLOW_HTTP,
     IDENTITY_GATE_CONTRACT_ID,
-    OFAC_PROVER_DIR,
     countries
 };

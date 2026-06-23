@@ -4,8 +4,6 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env, Vec,
 };
 
-// Clients generated from the compiled zk_verifier / ofac_verifier contracts.
-// Build both first: `stellar contract build --package zk_verifier --package ofac_verifier`
 mod firma_verifier {
     soroban_sdk::contractimport!(
         file = "../../target/wasm32v1-none/release/zk_verifier.wasm"
@@ -33,12 +31,6 @@ pub struct Proof {
     pub b: BytesN<128>,
     pub c: BytesN<64>,
     pub pub_signals: Vec<BytesN<32>>,
-}
-
-#[contractevent]
-pub struct IdentityVerified {
-    #[topic]
-    pub wallet: Address,
 }
 
 #[contracterror]
@@ -224,8 +216,6 @@ impl IdentityGate {
         env.storage()
             .persistent()
             .set(&DataKey::Verified(wallet.clone()), &true);
-
-        IdentityVerified { wallet }.publish(&env);
 
         Ok(())
     }

@@ -133,8 +133,6 @@ impl ZkVote {
     ///
     /// ### Public signals layout (5 × 32-byte big-endian scalars)
     ///
-    /// Confirmed against `FirmaDigitalCRVerifier`'s symbol table (outputs
-    /// first, then public inputs, in declaration order):
     ///
     /// | idx | meaning                                                       |
     /// |-----|---------------------------------------------------------------|

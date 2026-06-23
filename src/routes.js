@@ -10,8 +10,7 @@ const {
     SOROBAN_NETWORK_PASSPHRASE,
     IDENTITY_GATE_CONTRACT_ID,
     SOROBAN_SECRET_KEY,
-    SOROBAN_ALLOW_HTTP,
-    OFAC_PROVER_DIR
+    SOROBAN_ALLOW_HTTP
 } = require('./config');
 const { renderHomePage } = require('./renderers/homePage');
 const { renderPassportPage } = require('./renderers/passportPage');
@@ -175,7 +174,7 @@ async function handleCallback(req, res) {
                     throw new Error('No wallet address found in state');
                 }
 
-                const ofacProofPayload = await generateOfacProof(wallet, OFAC_PROVER_DIR);
+                const ofacProofPayload = await generateOfacProof(wallet);
 
                 verifierResult = await verifyIdentityOnChain(wallet, proofPayload, ofacProofPayload, {
                     rpcUrl: SOROBAN_RPC_URL,

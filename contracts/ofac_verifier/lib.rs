@@ -12,9 +12,7 @@ pub struct OfacVerifier;
 impl OfacVerifier {
     /// Groth16 proof verification using BN254 host functions (X-Ray).
     ///
-    /// Soroban port of OFACVerifier.sol (snarkJS-generated Groth16 verifier).
-    ///
-    /// Inputs are raw big-endian bytes (same format as EVM precompiles):
+    /// Inputs are raw big-endian bytes:
     /// - a: 64 bytes (x || y)
     /// - b: 128 bytes (x1 || x2 || y1 || y2)
     /// - c: 64 bytes (x || y)

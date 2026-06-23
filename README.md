@@ -21,7 +21,7 @@ High-level flow for `zk-firma-digital`:
 2. `/login` sends that address as `user_id` to Zikuani and also encodes it into the OAuth `state` (see [`src/utils/language.js`](zikuani-stellar/src/utils/language.js)), since `state` is the only value the OAuth round trip guarantees to echo back unchanged.
 3. Zikuani redirects back to `/callback` with an authorization code and that same `state`.
 4. The app exchanges the code for a token and a ZK Firma Digital proof, and decodes the wallet address back out of `state`, in [`src/routes.js`](zikuani-stellar/src/routes.js).
-5. The app generates a live OFAC non-membership proof for that same wallet address via [`generateOfacProof`](zikuani-stellar/src/services/ofacProver.js), which shells out to the vendored prover in [`prover/`](zikuani-stellar/prover).
+5. The app generates a live OFAC non-membership proof for that same wallet address via [`generateOfacProof`](zikuani-stellar/src/services/ofacProver.js), which calls the vendored prover in [`prover/`](zikuani-stellar/prover) directly in-process.
 6. The wallet address and both proofs are passed to [`verifyIdentityOnChain`](zikuani-stellar/src/services/sorobanVerifier.js), which invokes `identity_gate::verify_identity(wallet, firma_proof, ofac_proof)` — binding the same connected wallet address that was used as the firma-digital `user_id` to both proof checks.
 7. The callback page shows whether the identity was verified on Stellar Testnet and displays the transaction hash.
 
@@ -34,7 +34,7 @@ Note: `verify_identity` does not call `wallet.require_auth()` — `wallet` is ju
 - [`src/client.js`](zikuani-stellar/src/client.js): starts the Express server
 - [`src/routes.js`](zikuani-stellar/src/routes.js): handles login and callback flows
 - [`src/services/sorobanVerifier.js`](zikuani-stellar/src/services/sorobanVerifier.js): builds and submits the Soroban verification transaction
-- [`src/services/ofacProver.js`](zikuani-stellar/src/services/ofacProver.js): decodes a Stellar address and shells out to the vendored prover in [`prover/`](zikuani-stellar/prover) to generate a live OFAC proof
+- [`src/services/ofacProver.js`](zikuani-stellar/src/services/ofacProver.js): decodes a Stellar address and calls the vendored prover in [`prover/`](zikuani-stellar/prover) directly in-process to generate a live OFAC proof
 - [`src/renderers/callbackPage.js`](zikuani-stellar/src/renderers/callbackPage.js): renders the final authenticated page, including verifier status and transaction hash
 - [`src/config.js`](zikuani-stellar/src/config.js): runtime configuration from environment variables
 
@@ -143,12 +143,11 @@ SOROBAN_CONTRACT_ID=<deployed_zk_verifier_contract_id>
 IDENTITY_GATE_CONTRACT_ID=<deployed_identity_gate_contract_id>
 SOROBAN_SECRET_KEY=<funded_testnet_secret_key>
 SOROBAN_ALLOW_HTTP=0
-OFAC_PROVER_DIR=./prover
 ```
 
 `SOROBAN_CONTRACT_ID` is only used by [`contracts/invokeSorobanVerifier.ts`](zikuani-stellar/contracts/invokeSorobanVerifier.ts) to test `zk_verifier` directly. The web app (`src/routes.js`) calls `identity_gate` via `IDENTITY_GATE_CONTRACT_ID`.
 
-The OFAC proof is generated live for each request's wallet address by [`generateOfacProof`](zikuani-stellar/src/services/ofacProver.js), which decodes the Stellar address and shells out to `node helpers/prove-ofac.js <addressBigInt>` inside `OFAC_PROVER_DIR` (defaults to [`prover/`](zikuani-stellar/prover), vendored into this repo — see [`prover/helpers/prove-ofac.js`](zikuani-stellar/prover/helpers/prove-ofac.js)). That prover still sources the blacklist from a small hardcoded placeholder list (no real OFAC SDN feed is wired in anywhere yet), and its `ofacRoot` must match whatever root `identity_gate` currently accepts (set via `initialize` / `set_ofac_root`).
+The OFAC proof is generated live for each request's wallet address by [`generateOfacProof`](zikuani-stellar/src/services/ofacProver.js), which decodes the Stellar address and calls `proveOfacNonMembership` from the vendored prover in [`prover/`](zikuani-stellar/prover) directly in-process (no subprocess — see [`prover/helpers/prove-ofac.js`](zikuani-stellar/prover/helpers/prove-ofac.js)). That prover still sources the blacklist from a small hardcoded placeholder list (no real OFAC SDN feed is wired in anywhere yet), and its `ofacRoot` must match whatever root `identity_gate` currently accepts (set via `initialize` / `set_ofac_root`).
 
 ## Build and Deploy the Contracts
 
