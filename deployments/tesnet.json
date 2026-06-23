@@ -1,0 +1,26 @@
+{
+  "zk_verifier": {
+    "contract_id": "CBBMFIBHCS55KDOJEON5U2TSCYC5D27AFD4HE7KGNIUKPWXJJZEM4EZL",
+    "network": "tesnet",
+    "source_account": "kurono",
+    "deployed_at": "2026-06-23T00:27:15Z"
+  },
+  "ofac_verifier": {
+    "contract_id": "CD4IW2UZKC4MZQQS73L5F7BKMQ5EZP3GK5O35MIVS2QAH6CU6NKIOHBK",
+    "network": "tesnet",
+    "source_account": "kurono",
+    "deployed_at": "2026-06-23T00:27:26Z"
+  },
+  "identity_gate": {
+    "contract_id": "CAGYOPQILCDPB2WJHUTVNJVOVXF6UYCELBHICXOJZWF7GNGYRCQWVLE6",
+    "network": "tesnet",
+    "source_account": "kurono",
+    "deployed_at": "2026-06-23T00:27:36Z"
+  },
+  "zk_vote": {
+    "contract_id": "CDZZXVGUCLBUTE3WDD6TF2NXPTBPOYTVPPBBIZMSPVIQLUG226XJ4PAN",
+    "network": "tesnet",
+    "source_account": "kurono",
+    "deployed_at": "2026-06-23T00:27:46Z"
+  }
+}

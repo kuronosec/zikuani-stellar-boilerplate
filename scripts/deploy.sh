@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
 # Builds and deploys all Soroban contracts in this repo, recording each
-# deployed contract address in deployments/<network>.json.
+# deployed contract address in deployments/<network>.json. Also initializes
+# identity_gate, using the OFAC root produced by the placeholder address
+# list in prover/helpers/prove-ofac.js -- see the warning printed below.
 #
 # Usage:
 #   ./scripts/deploy.sh [network] [source-account]
@@ -9,8 +11,9 @@
 #   network         stellar CLI network name (default: testnet)
 #   source-account  stellar CLI identity used to sign deploys (default: kurono)
 #
-# Requires the Stellar CLI (`stellar`) and `jq` to be installed, and the
-# given source account to already exist via `stellar keys add <name>`.
+# Requires the Stellar CLI (`stellar`) and `jq` to be installed, Node.js
+# dependencies installed (`yarn install`, for the OFAC root computation),
+# and the given source account to already exist via `stellar keys add <name>`.
 set -euo pipefail
 
 NETWORK="${1:-testnet}"
@@ -65,21 +68,31 @@ echo
 echo "==> All addresses recorded in $OUT_FILE"
 jq . "$OUT_FILE"
 
+ADMIN_ADDRESS="$(stellar keys address "$SOURCE_ACCOUNT")"
+OFAC_ROOT="$(node -e "require('$REPO_ROOT/prover/helpers/prove-ofac').getOfacRootHex().then((hex) => process.stdout.write(hex))")"
+
 echo
-echo "==> Next step: initialize identity_gate and zk_vote (not done automatically)"
+echo "==> OFAC root from prover/helpers/prove-ofac.js's placeholder address list: $OFAC_ROOT"
+echo "    WARNING: this is NOT the real OFAC SDN crypto address list (see that file)."
+echo "    Re-run this script (or call set_ofac_root) whenever that list changes."
+
 echo
-echo "identity_gate.initialize needs: admin, firma_verifier_id (zk_verifier), ofac_verifier_id (ofac_verifier), ofac_root"
-echo "  stellar contract invoke --id \$(jq -r '.identity_gate.contract_id' $OUT_FILE) \\"
-echo "    --source-account $SOURCE_ACCOUNT --network $NETWORK -- initialize \\"
-echo "    --admin <ADMIN_ADDRESS> \\"
-echo "    --firma_verifier_id \$(jq -r '.zk_verifier.contract_id' $OUT_FILE) \\"
-echo "    --ofac_verifier_id \$(jq -r '.ofac_verifier.contract_id' $OUT_FILE) \\"
-echo "    --ofac_root <OFAC_ROOT_HEX_32_BYTES>"
+echo "==> Initializing identity_gate"
+stellar contract invoke \
+  --id "$(jq -r '.identity_gate.contract_id' "$OUT_FILE")" \
+  --source-account "$SOURCE_ACCOUNT" --network "$NETWORK" -- initialize \
+  --admin "$ADMIN_ADDRESS" \
+  --firma_verifier_id "$(jq -r '.zk_verifier.contract_id' "$OUT_FILE")" \
+  --ofac_verifier_id "$(jq -r '.ofac_verifier.contract_id' "$OUT_FILE")" \
+  --ofac_root "$OFAC_ROOT"
+
+echo
+echo "==> Next step: initialize zk_vote (not done automatically -- needs campaign-specific data)"
 echo
 echo "zk_vote.initialize needs: admin, verifier_id (zk_verifier), vote_params, proposal_descriptions"
 echo "  stellar contract invoke --id \$(jq -r '.zk_vote.contract_id' $OUT_FILE) \\"
 echo "    --source-account $SOURCE_ACCOUNT --network $NETWORK -- initialize \\"
-echo "    --admin <ADMIN_ADDRESS> \\"
+echo "    --admin $ADMIN_ADDRESS \\"
 echo "    --verifier_id \$(jq -r '.zk_verifier.contract_id' $OUT_FILE) \\"
 echo "    --vote_params <VOTE_PARAMS_JSON> \\"
 echo "    --proposal_descriptions '[\"Option A\",\"Option B\"]'"

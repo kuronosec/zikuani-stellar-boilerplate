@@ -88,4 +88,14 @@ async function proveOfacNonMembership(addressBigInt) {
     return { proof, public: publicSignals, ofacRoot: inputs.ofacRoot, addressHash: inputs.addressHash };
 }
 
-module.exports = { proveOfacNonMembership };
+// Just the SMT root for OFAC_ADDRESSES, as a 64-char hex string (32 bytes,
+// matching identity_gate's `ofac_root: BytesN<32>`) -- without generating a
+// full proof. Used by scripts/deploy.sh to initialize identity_gate with a
+// root that actually matches what this prover will produce proofs against.
+async function getOfacRootHex() {
+    const { tree, poseidon } = await buildOFACTree(OFAC_ADDRESSES);
+    const rootBigInt = poseidon.F.toObject(tree.root);
+    return rootBigInt.toString(16).padStart(64, "0");
+}
+
+module.exports = { proveOfacNonMembership, getOfacRootHex };
