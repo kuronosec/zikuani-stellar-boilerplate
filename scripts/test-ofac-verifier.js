@@ -63,7 +63,12 @@ async function main() {
     console.log('ofac_verifier is deployed correctly and accepts real proofs.');
 }
 
-main().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});
+// snarkjs/ffjavascript's field-arithmetic WASM bindings (used during proof
+// generation) leave worker threads running that never let the event loop
+// drain on their own, so exit explicitly once the actual work is done.
+main()
+    .then(() => process.exit(0))
+    .catch((err) => {
+        console.error(err);
+        process.exit(1);
+    });
