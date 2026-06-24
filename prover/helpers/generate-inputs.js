@@ -82,4 +82,20 @@ async function generateProofInputs(tree, poseidon, addressBigInt) {
     };
 }
 
-module.exports = { buildOFACTree, generateProofInputs, splitAddress, N_LEVELS };
+/**
+ * Computes Poseidon(addressLo, addressHi) for a single address, as a plain
+ * BigInt -- the same address-binding hash `generateProofInputs` embeds as
+ * `addressHash`, without needing to build the full OFAC tree. Used to
+ * compute the Firma Digital proof's `signal` so both proofs commit to the
+ * same address hash (see identity_gate's `signalHash == addressHash` check).
+ *
+ * @param {bigint} addressBigInt
+ * @returns {Promise<bigint>}
+ */
+async function computeAddressHash(addressBigInt) {
+    const poseidon = await buildPoseidon();
+    const { addressLo, addressHi } = splitAddress(addressBigInt);
+    return poseidon.F.toObject(poseidon([addressLo, addressHi]));
+}
+
+module.exports = { buildOFACTree, generateProofInputs, computeAddressHash, splitAddress, N_LEVELS };
