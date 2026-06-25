@@ -45,6 +45,21 @@ function initWalletConnect() {
         }
     }
 
+    async function restoreConnectedAddress() {
+        // The kit persists the last connected address/module in localStorage
+        // itself, so getAddress() returns it immediately on a fresh page
+        // load with no modal/re-prompt -- as long as a wallet was connected
+        // here before.
+        try {
+            const { address } = await StellarWalletsKit.getAddress();
+            if (address) {
+                setConnectedAddress(address);
+            }
+        } catch (error) {
+            // No previously connected wallet available; nothing to do.
+        }
+    }
+
     connectBtn.addEventListener('click', openWalletModal);
     changeBtn.addEventListener('click', openWalletModal);
 
@@ -54,6 +69,8 @@ function initWalletConnect() {
             errorEl.classList.add('is-visible');
         }
     });
+
+    restoreConnectedAddress();
 }
 
 if (document.readyState === 'loading') {
