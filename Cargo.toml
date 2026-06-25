@@ -1,8 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
+  "contracts/verifier_common",
   "contracts/zk_verifier",
   "contracts/zk_vote",
+  "contracts/ofac_verifier",
+  "contracts/identity_gate",
 ]
 
 [workspace.dependencies]

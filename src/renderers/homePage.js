@@ -198,6 +198,65 @@ function renderHomePage(lang, texts) {
                 .language-switcher .language-select option {
                     color: #101a40;
                 }
+                .wallet-connect-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    width: 100%;
+                    border: 1px solid rgba(101, 131, 255, 0.35);
+                    background: rgba(7, 15, 46, 0.82);
+                    color: #ffffff;
+                    border-radius: 14px;
+                    padding: 0.75rem 1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: transform 0.2s ease, border 0.2s ease, background 0.2s ease;
+                }
+                .wallet-connect-btn:hover {
+                    transform: translateY(-1px);
+                    border-color: rgba(149, 188, 255, 0.75);
+                }
+                .wallet-status {
+                    display: none;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 0.75rem;
+                    border-radius: 14px;
+                    padding: 0.75rem 1rem;
+                    background: rgba(58, 109, 255, 0.18);
+                    border: 1px solid rgba(149, 188, 255, 0.55);
+                }
+                .wallet-status.is-connected {
+                    display: flex;
+                }
+                .wallet-status.is-connected + .wallet-connect-btn {
+                    display: none;
+                }
+                .wallet-address {
+                    font-family: 'SFMono-Regular', Consolas, monospace;
+                    font-size: 0.85rem;
+                    color: #f1f4ff;
+                    overflow-wrap: anywhere;
+                }
+                .wallet-change-btn {
+                    flex-shrink: 0;
+                    background: none;
+                    border: none;
+                    color: rgba(203, 215, 255, 0.95);
+                    font-size: 0.8rem;
+                    text-decoration: underline;
+                    cursor: pointer;
+                }
+                .wallet-error {
+                    display: none;
+                    color: #ffb4b4;
+                    font-size: 0.85rem;
+                    margin-top: 0.5rem;
+                }
+                .wallet-error.is-visible {
+                    display: block;
+                }
                 @media (max-width: 991.98px) {
                     .hero {
                         text-align: center;
@@ -239,11 +298,17 @@ function renderHomePage(lang, texts) {
                         </div>
                     </div>
                     <div class="col-lg-5 ms-lg-auto">
-                        <form action="/login" method="get" class="glass-card p-4 p-lg-5">
+                        <form action="/login" method="get" class="glass-card p-4 p-lg-5" id="login-form">
                             <input type="hidden" name="lang" value="${lang}">
+                            <input type="hidden" id="user" name="user" value="">
                             <div class="mb-4">
-                                <label for="user" class="form-label">${texts.home.emailLabel}</label>
-                                <input type="email" id="user" name="user" class="form-control form-control-lg" placeholder="${texts.home.emailPlaceholder}" required>
+                                <label class="form-label">${texts.home.walletLabel}</label>
+                                <div class="wallet-status" id="wallet-status">
+                                    <span class="wallet-address" id="wallet-address"></span>
+                                    <button type="button" class="wallet-change-btn" id="wallet-change-btn">${texts.home.walletChangeButton}</button>
+                                </div>
+                                <button type="button" class="wallet-connect-btn" id="wallet-connect-btn">🔗 ${texts.home.walletConnectButton}</button>
+                                <p class="wallet-error" id="wallet-error">${texts.home.walletNotConnectedError}</p>
                             </div>
                             <div class="mb-4">
                                 <span class="form-label d-block">${texts.home.methodLabel}</span>
@@ -284,6 +349,11 @@ function renderHomePage(lang, texts) {
                     </div>
                 </div>
             </div>
+        <!-- Built by yarn build:wallet (esbuild) from src/wallet/wallet-connect.js.
+             Bundled locally rather than imported from a CDN: the esm.sh CDN failed to
+             resolve named exports from a nested dependency during testing, and serving
+             the bundle ourselves avoids depending on a third party CDN being reachable. -->
+        <script type="module" src="/js/wallet-connect.bundle.js"></script>
         </body>
         </html>
     `;

@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 
 const { PORT } = require('./config');
@@ -5,6 +6,7 @@ const { registerRoutes } = require('./routes');
 
 function createServer() {
     const app = express();
+    app.use('/js', express.static(path.join(__dirname, '..', 'public', 'js')));
     registerRoutes(app);
     return app;
 }

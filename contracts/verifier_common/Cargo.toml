@@ -1,14 +1,12 @@
 [package]
-name = "zk_verifier"
+name = "verifier_common"
 version = "0.0.0"
 edition = "2021"
 publish = false
 
 [lib]
 path = "lib.rs"
-crate-type = ["lib", "cdylib"]
 doctest = false
 
 [dependencies]
 soroban-sdk = { workspace = true }
-verifier_common = { path = "../verifier_common" }

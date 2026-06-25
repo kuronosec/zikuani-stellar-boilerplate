@@ -1,4 +1,5 @@
 node_modules
+public/js/wallet-connect.bundle.js
 .env*
 .vscode/
 yarn.lock

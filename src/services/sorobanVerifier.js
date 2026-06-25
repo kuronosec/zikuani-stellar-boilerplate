@@ -45,6 +45,23 @@ function shouldAllowHttp(rpcUrl, allowHttp) {
     return rpcUrl.startsWith('http://');
 }
 
+// Accepts both the OAuth token's nested shape
+// (`{ proof: { signatureValue: { proof, public } } }`) and the flat shape
+// used by local fixture files (`{ proof, public }`).
+function parseProofPayload(payload) {
+    const json = typeof payload === 'string' ? JSON.parse(payload) : payload;
+
+    if (json && json.proof && json.proof.signatureValue) {
+        return {
+            proof: json.proof.signatureValue.proof,
+            pubSignals: json.proof.signatureValue.public
+        };
+    }
+
+    const pubSignals = json.public || json.pub_signals || json.publicSignals;
+    return { proof: json.proof, pubSignals };
+}
+
 function packGroth16ForSoroban(proof) {
     const a = Buffer.concat([
         be32(proof.pi_a[0]),
@@ -66,6 +83,58 @@ function packGroth16ForSoroban(proof) {
     return { a, b, c };
 }
 
+// `identity_gate::Proof` is a #[contracttype] struct with named fields
+// (a, b, c, pub_signals). Soroban encodes such structs as a Map whose keys
+// are Symbols sorted alphabetically, so the field names must be marked as
+// `symbol` (not the SDK's default `string`) for the contract to decode them.
+function buildProofScVal(proof, pubSignals) {
+    const { a, b, c } = packGroth16ForSoroban(proof);
+
+    return nativeToScVal(
+        { a, b, c, pub_signals: pubSignals.map((value) => be32(value)) },
+        { type: { a: ['symbol', 'bytes'], b: ['symbol', 'bytes'], c: ['symbol', 'bytes'], pub_signals: ['symbol', 'bytes'] } }
+    );
+}
+
+async function submitAndAwait(server, tx, sourceKeypair) {
+    const simulation = await server.simulateTransaction(tx);
+    if ('error' in simulation) {
+        throw new Error(`Simulation failed: ${simulation.error}`);
+    }
+
+    const simulatedReturnValue = simulation.result && simulation.result.retval
+        ? scValToNative(simulation.result.retval)
+        : undefined;
+
+    const prepared = await server.prepareTransaction(tx);
+    prepared.sign(sourceKeypair);
+
+    const sendResponse = await server.sendTransaction(prepared);
+    if (!sendResponse.hash) {
+        throw new Error('Transaction submission failed');
+    }
+
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+        const txResult = await server.getTransaction(sendResponse.hash);
+
+        if (txResult.status === 'SUCCESS' || txResult.status === 'FAILED') {
+            return {
+                status: txResult.status,
+                simulationResult: simulatedReturnValue,
+                returnValue: 'returnValue' in txResult && txResult.returnValue
+                    ? scValToNative(txResult.returnValue)
+                    : undefined,
+                txHash: txResult.txHash || sendResponse.hash,
+                latestLedger: txResult.latestLedger
+            };
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+
+    throw new Error(`Timed out waiting for transaction ${sendResponse.hash}`);
+}
+
 async function verifyProofOnChain(proofPayload, config) {
     const {
         rpcUrl,
@@ -79,12 +148,10 @@ async function verifyProofOnChain(proofPayload, config) {
         throw new Error('Missing Soroban verifier configuration');
     }
 
-    const proofJSON = JSON.parse(proofPayload);
-    const pubSignals = proofJSON.proof.signatureValue.public;
-    const proof = proofJSON.proof.signatureValue.proof;
+    const { proof, pubSignals } = parseProofPayload(proofPayload);
 
-    if (pubSignals.length < 5) {
-        throw new Error('Proof payload does not contain 5 public signals');
+    if (pubSignals.length === 0) {
+        throw new Error('Proof payload does not contain any public signals');
     }
 
     const server = new rpc.Server(rpcUrl, { allowHttp: shouldAllowHttp(rpcUrl, allowHttp) });
@@ -106,7 +173,7 @@ async function verifyProofOnChain(proofPayload, config) {
                     nativeToScVal(b, { type: 'bytes' }),
                     nativeToScVal(c, { type: 'bytes' }),
                     nativeToScVal(
-                        pubSignals.slice(0, 5).map((value) => nativeToScVal(be32(value), { type: 'bytes' })),
+                        pubSignals.map((value) => nativeToScVal(be32(value), { type: 'bytes' })),
                         { type: 'vec' }
                     )
                 ]
@@ -115,47 +182,79 @@ async function verifyProofOnChain(proofPayload, config) {
         .setTimeout(30)
         .build();
 
-    const simulation = await server.simulateTransaction(tx);
-    if ('error' in simulation) {
-        throw new Error(`Simulation failed: ${simulation.error}`);
+    const result = await submitAndAwait(server, tx, sourceKeypair);
+    if (result.status === 'FAILED') {
+        throw new Error('Verifier transaction failed');
     }
 
-    const simulatedReturnValue = simulation.result && simulation.result.retval
-        ? scValToNative(simulation.result.retval)
-        : undefined;
+    return result;
+}
 
-    const prepared = await server.prepareTransaction(tx);
-    prepared.sign(sourceKeypair);
+// Calls `identity_gate::verify_identity(wallet, firma_proof, ofac_proof)`,
+// which checks the ZK Firma Digital credential proof and the OFAC
+// non-sanctions proof together, binding both to the same underlying address.
+//
+// `wallet` should be the same Stellar address the user connected and sent as
+// `user_id` for the firma-digital proof request, so the on-chain identity
+// check is bound to that address.
+async function verifyIdentityOnChain(wallet, firmaProofPayload, ofacProofPayload, config) {
+    const {
+        rpcUrl,
+        networkPassphrase,
+        contractId,
+        secretKey,
+        allowHttp
+    } = config;
 
-    const sendResponse = await server.sendTransaction(prepared);
-    if (!sendResponse.hash) {
-        throw new Error('Transaction submission failed');
+    if (!rpcUrl || !networkPassphrase || !contractId || !secretKey) {
+        throw new Error('Missing identity gate verifier configuration');
+    }
+    if (!wallet) {
+        throw new Error('Missing wallet address for identity verification');
     }
 
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-        const txResult = await server.getTransaction(sendResponse.hash);
+    const firma = parseProofPayload(firmaProofPayload);
+    const ofac = parseProofPayload(ofacProofPayload);
 
-        if (txResult.status === 'SUCCESS') {
-            return {
-                simulationResult: simulatedReturnValue,
-                returnValue: 'returnValue' in txResult && txResult.returnValue
-                    ? scValToNative(txResult.returnValue)
-                    : undefined,
-                txHash: txResult.txHash || sendResponse.hash,
-                latestLedger: txResult.latestLedger
-            };
-        }
-
-        if (txResult.status === 'FAILED') {
-            throw new Error('Verifier transaction failed');
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (firma.pubSignals.length !== 5) {
+        throw new Error('Firma Digital proof payload does not contain 5 public signals');
+    }
+    if (ofac.pubSignals.length !== 2) {
+        throw new Error('OFAC proof payload does not contain 2 public signals');
     }
 
-    throw new Error(`Timed out waiting for transaction ${sendResponse.hash}`);
+    const server = new rpc.Server(rpcUrl, { allowHttp: shouldAllowHttp(rpcUrl, allowHttp) });
+    const sourceKeypair = Keypair.fromSecret(secretKey);
+    const sourceAccount = await server.getAccount(sourceKeypair.publicKey());
+    const normalizedPassphrase = getNetworkPassphrase(networkPassphrase);
+
+    const tx = new TransactionBuilder(sourceAccount, {
+        fee: BASE_FEE,
+        networkPassphrase: normalizedPassphrase
+    })
+        .addOperation(
+            Operation.invokeContractFunction({
+                contract: contractId,
+                function: 'verify_identity',
+                args: [
+                    nativeToScVal(wallet, { type: 'address' }),
+                    buildProofScVal(firma.proof, firma.pubSignals),
+                    buildProofScVal(ofac.proof, ofac.pubSignals)
+                ]
+            })
+        )
+        .setTimeout(30)
+        .build();
+
+    const result = await submitAndAwait(server, tx, sourceKeypair);
+
+    return {
+        ...result,
+        verified: result.status === 'SUCCESS'
+    };
 }
 
 module.exports = {
-    verifyProofOnChain
+    verifyProofOnChain,
+    verifyIdentityOnChain
 };

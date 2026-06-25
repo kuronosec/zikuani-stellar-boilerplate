@@ -6,30 +6,27 @@ use verifier_common::{g1_from_xy, g1_neg, g2_from_xy, xray, Pair};
 mod vk;
 
 #[contract]
-pub struct Verifier;
+pub struct OfacVerifier;
 
 #[contractimpl]
-impl Verifier {
+impl OfacVerifier {
     /// Groth16 proof verification using BN254 host functions (X-Ray).
     ///
-    /// Inputs are raw big-endian bytes (same format as EVM precompiles):
+    /// Inputs are raw big-endian bytes:
     /// - a: 64 bytes (x || y)
     /// - b: 128 bytes (x1 || x2 || y1 || y2)
     /// - c: 64 bytes (x || y)
-    /// - pub_signals: 5 scalars (each 32 bytes)
+    /// - pub_signals: 2 scalars (each 32 bytes)
     pub fn verify_proof(env: Env, a: BytesN<64>, b: BytesN<128>, c: BytesN<64>, pub_signals: Vec<BytesN<32>>) -> bool {
-        if pub_signals.len() != 5 {
+        if pub_signals.len() != 2 {
             return false;
         }
 
         let mut vk_x = g1_from_xy(&env, &vk::IC0_X, &vk::IC0_Y);
 
-        let ic_points: [(&[u8; 32], &[u8; 32]); 5] = [
+        let ic_points: [(&[u8; 32], &[u8; 32]); 2] = [
             (&vk::IC1_X, &vk::IC1_Y),
             (&vk::IC2_X, &vk::IC2_Y),
-            (&vk::IC3_X, &vk::IC3_Y),
-            (&vk::IC4_X, &vk::IC4_Y),
-            (&vk::IC5_X, &vk::IC5_Y),
         ];
 
         for (i, (x, y)) in ic_points.iter().enumerate() {

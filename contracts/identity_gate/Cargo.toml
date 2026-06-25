@@ -1,5 +1,5 @@
 [package]
-name = "zk_verifier"
+name = "identity_gate"
 version = "0.0.0"
 edition = "2021"
 publish = false
@@ -11,4 +11,3 @@ doctest = false
 
 [dependencies]
 soroban-sdk = { workspace = true }
-verifier_common = { path = "../verifier_common" }
