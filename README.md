@@ -1,6 +1,15 @@
-# Zikuani Stellar Testnet Verifier
+# Zikuani: the identity layer for Stellar
 
-This project is a small Express web app that authenticates users with Zikuani and, for the `zk-firma-digital` flow, verifies the returned ZK Firma Digital proof together with an OFAC non-sanctions proof on the `identity_gate` Soroban smart contract deployed to Stellar Testnet.
+## Introduction
+
+This app lets someone prove two things about themselves on-chain, **without revealing any personal information**:
+
+1. **"I am a real, verified person, older than 18 years, and a resident of a specific country"** — backed by a government-issued digital identity credential (Firma Digital), not a name, ID number, or any other personal data.
+2. **"My Stellar address is not on a sanctions list"** — proven without revealing which other addresses *are* on that list, or exposing the address-screening process itself.
+
+Both checks happen via zero-knowledge proofs: the blockchain only ever sees a cryptographic proof that each statement is true, never the underlying sensitive data (identity documents, the sanctions list, etc.). A Soroban smart contract (`identity_gate`) verifies both proofs on Stellar and records that the connected wallet passed both checks.
+
+The rest of this document covers how the code is organized and how to build/run/test it.
 
 The repository contains:
 
@@ -21,9 +30,9 @@ High-level flow for `zk-firma-digital`:
 2. `/login` sends that address as `user_id` to Zikuani and also encodes it into the OAuth `state` (see [`src/utils/language.js`](zikuani-stellar/src/utils/language.js)), since `state` is the only value the OAuth round trip guarantees to echo back unchanged.
 3. Zikuani redirects back to `/callback` with an authorization code and that same `state`.
 4. The app exchanges the code for a token and a ZK Firma Digital proof, and decodes the wallet address back out of `state`, in [`src/routes.js`](zikuani-stellar/src/routes.js).
-5. The app generates a live OFAC non-membership proof for that same wallet address via [`generateOfacProof`](zikuani-stellar/src/services/ofacProver.js), which calls the vendored prover in [`prover/`](zikuani-stellar/prover) directly in-process.
+5. The app generates a live OFAC non-membership proof for that same wallet address via [`generateOfacProof`](zikuani-stellar/src/services/ofacProver.js), which calls the prover in [`prover/`](zikuani-stellar/prover).
 6. The wallet address and both proofs are passed to [`verifyIdentityOnChain`](zikuani-stellar/src/services/sorobanVerifier.js), which invokes `identity_gate::verify_identity(wallet, firma_proof, ofac_proof)` — binding the same connected wallet address that was used as the firma-digital `user_id` to both proof checks.
-7. The callback page shows whether the identity was verified on Stellar Testnet and displays the transaction hash.
+7. The callback page shows whether the identity was verified on Stellar Network and displays the transaction hash.
 
 Note: `verify_identity` does not call `wallet.require_auth()` — `wallet` is just the on-chain record key for the OFAC/Firma Digital check, not a value the caller has to authorize as. The transaction is signed by `SOROBAN_SECRET_KEY` regardless of which wallet address was checked.
 
@@ -38,7 +47,7 @@ Note: `verify_identity` does not call `wallet.require_auth()` — `wallet` is ju
 - [`src/renderers/callbackPage.js`](zikuani-stellar/src/renderers/callbackPage.js): renders the final authenticated page, including verifier status and transaction hash
 - [`src/config.js`](zikuani-stellar/src/config.js): runtime configuration from environment variables
 
-### OFAC prover (vendored)
+### OFAC prover
 
 - [`prover/helpers/prove-ofac.js`](zikuani-stellar/prover/helpers/prove-ofac.js): CLI entrypoint — takes an address as a BigInt and prints a `{ public, proof }` JSON proof
 - [`prover/helpers/generate-inputs.js`](zikuani-stellar/prover/helpers/generate-inputs.js): builds the OFAC Sparse Merkle Tree and the circuit's witness inputs
@@ -54,7 +63,7 @@ Note: `verify_identity` does not call `wallet.require_auth()` — `wallet` is ju
 
 ## Soroban Verifier Design
 
-The Soroban contract implements the same Groth16 verification logic as the Solidity verifier, but without EVM assembly.
+The Soroban contract implements Groth16 proof verification using Soroban's native BN254 host functions.
 
 The main entrypoint is [`verify_proof`](zikuani-stellar/contracts/zk_verifier/lib.rs#L30). It expects:
 
@@ -71,13 +80,7 @@ Internally it:
 4. Executes a BN254 multi-pairing check using Soroban host crypto functions.
 5. Returns `true` if the proof is valid for the hardcoded verification key.
 
-- Solidity `alphax` maps to Soroban `ALPHA_X`
-- Solidity `alphay` maps to Soroban `ALPHA_Y`
-
-This is just a representation change:
-
-- Solidity stores large decimal `uint256` values
-- Soroban stores the same value as a 32-byte big-endian byte array
+The verification key constants in [`vk.rs`](zikuani-stellar/contracts/zk_verifier/vk.rs) are each stored as a 32-byte big-endian byte array.
 
 ## Proof Serialization
 
@@ -200,7 +203,7 @@ What this proves:
 - the contract is deployed correctly
 - the proof serialization is correct
 - the verification key matches the proof
-- the verification succeeded on Stellar Testnet, not just locally
+- the verification succeeded on Stellar, not just locally
 
 ## Test Through the Web App
 
@@ -208,7 +211,7 @@ When the app receives a `zk-firma-digital` proof in [`src/routes.js`](zikuani-st
 
 On the final authenticated page, the user sees:
 
-- whether the proof was verified on Stellar Testnet
+- whether the proof was verified on Stellar
 - the transaction hash
 - a link to the explorer transaction page
 
