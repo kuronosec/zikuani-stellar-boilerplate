@@ -32,6 +32,31 @@ CONTRACTS=(zk_verifier ofac_verifier identity_gate zk_vote)
 mkdir -p "$OUT_DIR"
 [ -f "$OUT_FILE" ] || echo '{}' > "$OUT_FILE"
 
+# Submitting several transactions back-to-back from the same source account
+# (as this script does, once per contract) can race the account's sequence
+# number against ledger close and fail with TxBadSeq even though nothing is
+# actually wrong -- retry a few times with backoff before giving up.
+retry() {
+  local attempt=1
+  local max_attempts=5
+  local delay=3
+  local output
+  while true; do
+    if output="$("$@" 2>&1)"; then
+      printf '%s\n' "$output"
+      return 0
+    fi
+    if [ "$attempt" -ge "$max_attempts" ] || ! grep -q "TxBadSeq" <<< "$output"; then
+      printf '%s\n' "$output" >&2
+      return 1
+    fi
+    echo "    TxBadSeq (attempt $attempt/$max_attempts), retrying in ${delay}s..." >&2
+    sleep "$delay"
+    attempt=$((attempt + 1))
+    delay=$((delay * 2))
+  done
+}
+
 echo "==> Building all contracts (network: $NETWORK, source: $SOURCE_ACCOUNT)"
 (cd "$REPO_ROOT" && stellar contract build)
 
@@ -44,12 +69,13 @@ for name in "${CONTRACTS[@]}"; do
 
   echo "==> Deploying $name"
   contract_id="$(
-    stellar contract deploy \
+    retry stellar contract deploy \
       --wasm "$wasm" \
       --source-account "$SOURCE_ACCOUNT" \
       --network "$NETWORK" \
-      -- 2>/tmp/deploy_${name}.log
-  )" || { cat "/tmp/deploy_${name}.log" >&2; exit 1; }
+      --
+  )" || exit 1
+  contract_id="$(tail -n1 <<< "$contract_id")"
 
   echo "    $name -> $contract_id"
 
@@ -78,7 +104,7 @@ echo "    Re-run this script (or call set_ofac_root) whenever that list changes.
 
 echo
 echo "==> Initializing identity_gate"
-stellar contract invoke \
+retry stellar contract invoke \
   --id "$(jq -r '.identity_gate.contract_id' "$OUT_FILE")" \
   --source-account "$SOURCE_ACCOUNT" --network "$NETWORK" -- initialize \
   --admin "$ADMIN_ADDRESS" \

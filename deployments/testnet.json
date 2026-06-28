@@ -1,26 +1,26 @@
 {
   "zk_verifier": {
-    "contract_id": "CCBEITP64LUEXAE46CSAMXCDSUG7UZQRWISCZQYZBFVQOWQT6EQULIFT",
+    "contract_id": "CAEBL46LV5L7DNDQNRUWNJQL74GSN7XKQOMTUY7ODQRWIBF24B7ARUTA",
     "network": "testnet",
     "source_account": "kurono",
-    "deployed_at": "2026-06-25T02:09:28Z"
+    "deployed_at": "2026-06-27T22:40:30Z"
   },
   "ofac_verifier": {
-    "contract_id": "CD52TSBZZZ25BICH7AHNK34OISPKTYGLIFTJOTO5B7BO5K2P524G6EJI",
+    "contract_id": "CAQZGLRYSVHZSCJVA4LENHAQYND4UPRDJEPYGNAZAZKPGF2YH7AMDTUC",
     "network": "testnet",
     "source_account": "kurono",
-    "deployed_at": "2026-06-25T02:09:32Z"
+    "deployed_at": "2026-06-27T22:40:47Z"
   },
   "identity_gate": {
-    "contract_id": "CC6R44WKDW6JAJ2IOYUL43HMAE4P25BYV2X3KCQKKSIYXIWTNBSVBKJS",
+    "contract_id": "CAWFOWQNAKN7DWPLHMKGFYXQM7K62A7UQ7NMKXAKMYXTH6AISEKGKN4K",
     "network": "testnet",
     "source_account": "kurono",
-    "deployed_at": "2026-06-25T02:09:43Z"
+    "deployed_at": "2026-06-27T22:41:02Z"
   },
   "zk_vote": {
-    "contract_id": "CCRXRPDGRMMSC2RFU7KSPXU7MCNMYTWL4I3WZ2IFBQQEZCAGDMKT7FWF",
+    "contract_id": "CDZTEZLVFON4YJDQ5AJKCCVGYHF2UE26ZRAPKJKXH2QO4UO7SPSWR7ZV",
     "network": "testnet",
     "source_account": "kurono",
-    "deployed_at": "2026-06-25T02:09:47Z"
+    "deployed_at": "2026-06-27T22:41:08Z"
   }
 }
