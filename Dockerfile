@@ -1,5 +1,8 @@
 # Step 1: Use an official Node.js runtime as the base image
-FROM node:20
+# Node 22+ required: @stellar/stellar-sdk's newer published versions (pulled
+# in transitively via @creit.tech/stellar-wallets-kit, since there's no
+# committed yarn.lock to pin this) declare engines.node >=22.
+FROM node:22
 
 # Step 2: Set the working directory in the container
 WORKDIR /usr/src/app
