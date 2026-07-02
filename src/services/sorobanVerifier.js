@@ -96,10 +96,19 @@ function buildProofScVal(proof, pubSignals) {
     );
 }
 
+function parseContractErrorCode(msg) {
+    const m = /Error\(Contract,\s*#(\d+)\)/.exec(msg)
+           || /ContractError\((\d+)\)/.exec(msg);
+    return m ? parseInt(m[1], 10) : null;
+}
+
 async function submitAndAwait(server, tx, sourceKeypair) {
     const simulation = await server.simulateTransaction(tx);
     if ('error' in simulation) {
-        throw new Error(`Simulation failed: ${simulation.error}`);
+        const code = parseContractErrorCode(simulation.error);
+        const err = new Error(`Simulation failed: ${simulation.error}`);
+        if (code !== null) err.contractError = code;
+        throw err;
     }
 
     const simulatedReturnValue = simulation.result && simulation.result.retval
@@ -248,9 +257,17 @@ async function verifyIdentityOnChain(wallet, firmaProofPayload, ofacProofPayload
 
     const result = await submitAndAwait(server, tx, sourceKeypair);
 
+    if (result.status === 'FAILED') {
+        const raw = result.returnValue != null ? String(result.returnValue) : '';
+        const code = parseContractErrorCode(raw);
+        const err = new Error(`identity_gate::verify_identity failed on-chain`);
+        if (code !== null) err.contractError = code;
+        throw err;
+    }
+
     return {
         ...result,
-        verified: result.status === 'SUCCESS'
+        verified: true
     };
 }
 

@@ -50,7 +50,7 @@ function buildFirmaDigitalUrl({ user, state }) {
             redirect_uri: REDIRECT_URI,
             scope: 'zk-firma-digital',
             state,
-            nullifier_seed: String(Math.floor(Math.random() * 10000))
+            nullifier_seed: '4444' // The same testing seed for all users
         })
     );
 }
@@ -63,7 +63,7 @@ function buildPassportQuery({ user, country, state }) {
         redirect_uri: REDIRECT_URI,
         scope: 'zk-passport',
         state,
-        nullifier_seed: String(Math.floor(Math.random() * 10000)),
+        nullifier_seed: '4444', // The same testing seed for all users
         data: encodeURIComponent(
             JSON.stringify({
                 id: user,
@@ -190,6 +190,10 @@ async function handleCallback(req, res) {
                 });
             } catch (verificationError) {
                 console.error('Soroban verifier error:', verificationError);
+                verifierResult = {
+                    verified: false,
+                    contractError: verificationError.contractError ?? null
+                };
             }
         }
 

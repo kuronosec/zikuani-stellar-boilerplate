@@ -5,12 +5,18 @@ function renderCallbackSuccessPage(lang, texts, { verifierResult, verifierAttemp
     const success = !verifierAttempted || (verifierResult && verifierResult.verified === true);
     const title = success ? texts.callback.heading : texts.callback.verifierRejected;
     const subtitle = success ? texts.callback.successSubtitle : texts.callback.verifierFailureSubtitle;
+    const contractError = verifierResult && verifierResult.contractError != null
+        ? verifierResult.contractError
+        : null;
+    const contractErrorMessage = contractError !== null
+        ? (texts.callback.contractErrors[contractError] || null)
+        : null;
     const verifierStatus = !verifierAttempted
         ? texts.callback.verifierSkipped
         : verifierResult && verifierResult.verified === true
             ? texts.callback.verifierVerified
             : verifierResult && verifierResult.verified === false
-                ? texts.callback.verifierRejected
+                ? (contractErrorMessage || texts.callback.verifierRejected)
                 : texts.callback.verifierUnknown;
     const txHash = verifierResult && verifierResult.txHash ? verifierResult.txHash : texts.callback.verifierNoTx;
     const explorerBaseUrl = 'https://stellarchain.io/tx/';

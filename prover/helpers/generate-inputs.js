@@ -62,7 +62,9 @@ async function generateProofInputs(tree, poseidon, addressBigInt) {
     const res = await tree.find(addressHash);
 
     if (res.found) {
-        throw new Error(`Address ${addressBigInt} IS in the OFAC blacklist — proof refused`);
+        const err = new Error(`Address ${addressBigInt} IS in the OFAC blacklist — proof refused`);
+        err.contractError = 100;
+        throw err;
     }
 
     // poseidon()/tree.find() return values in the field's internal (non-BigInt)
